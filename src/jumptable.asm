@@ -37,7 +37,7 @@ GETBNK:	JMP	_get_bank         		;$FF12	get bank number to regA
 SNINIT:	JMP	_sn_init          		;$FF15	Initialize SN76489 chipwith mute
 SNWRT:	JMP	_sn_write_data    		;$FF18	write data from regA to sn76489
 SHDLY:	JMP	__delay2          		;$FF1B
-RST:	JMP	_loop             		;$FF1E
+RST:	JMP	_bootloader_             		;$FF1E
 KBINPUT:	JMP	kbinput          		;$FF21
 KBGET:	JMP	kbget             		;$FF24
 KBSCAN:	JMP	kbscan            		;$FF27
