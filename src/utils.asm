@@ -21,6 +21,9 @@ _delay_hi:				.res 1
 .export INPUT_CHK
 .export _delay
 .export _via_test
+.export _INTE
+.export _INTD
+.export _GET_INT
 
 .segment "RODATA"
 msg_0:			.byte "Mazu BANKDISK", $00
@@ -81,6 +84,14 @@ _format_bank:
                   BNE @end_BANK
                   RTS
 @end_BANK:			  JMP @write_BANK
+
+_GET_INT:   LDA $CF20
+            RTS
+
+_INTE:  CLI
+        RTS
+_INTD:  SEI
+        RTS
 
 
 _delay:

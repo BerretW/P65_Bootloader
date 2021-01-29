@@ -24,6 +24,10 @@
 .export	KBINIT
 .export	INPUT
 .export	DLY
+.export	INTE
+.export	INTD
+.export	GET_INT
+
 
 .segment "JMPTBL"
 
@@ -36,11 +40,14 @@ SETBNK:	JMP	_set_bank         		;$FF0F	set bank to number from regA
 GETBNK:	JMP	_get_bank         		;$FF12	get bank number to regA
 SNINIT:	JMP	_sn_init          		;$FF15	Initialize SN76489 chipwith mute
 SNWRT:	JMP	_sn_write_data    		;$FF18	write data from regA to sn76489
-SHDLY:	JMP	__delay2          		;$FF1B
-RST:	JMP	_bootloader_             		;$FF1E
-KBINPUT:	JMP	kbinput          		;$FF21
+SHDLY:	JMP	__delay2          		;$FF1B	Short delay
+RST:	JMP	_bootloader_		;$FF1E	Restart to bootloader
+KBINPUT:	JMP	kbinput          		;$FF21	get key from PS2 keyboard
 KBGET:	JMP	kbget             		;$FF24
 KBSCAN:	JMP	kbscan            		;$FF27
-KBINIT:	JMP	kbinit            		;$FF2A
+KBINIT:	JMP	kbinit            		;$FF2A	Initialise PS2 keyboard
 INPUT:	JMP	INPUT_CHK         		;$FF2D
-DLY:	JMP	_delay		;$FF30
+DLY:	JMP	_delay		;$FF30	Long delay
+INTE:	JMP	_INTE		;$FF33	Enable Interrupts
+INTD:	JMP	_INTD		;$FF36	Disable Interrupts
+GET_INT:	JMP	_GET_INT		;$FF39	Get Interrupt number 0 = IRQ0, 2 = IRQ1, 4 = IRQ2, 6 = IRQ3, 8 = IRQ4, A = IRQ5, C = IRQ6, E = IRQ7
