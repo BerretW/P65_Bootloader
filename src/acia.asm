@@ -6,7 +6,7 @@
                     .export _acia_puts
 					          .export _acia_getc
                     .export _acia_put_newline
-
+                    .export _acia_scan
                     ;.import popax
 
                     .code
@@ -67,6 +67,15 @@ _acia_getc:
                     beq @wait_rxd_full
                     lda ACIA_DATA
                     rts
+
+_acia_scan:         lda ACIA_STATUS           ;nacte status ACIA
+                    and #ACIA_STATUS_RX_FULL  ;porovna status s RX_full bitem
+                    beq @end                  ;pokud je vysledek 0 skoci na @end, pokud ne tak pokracuje
+                    lda ACIA_DATA             ;nacte do A data z ACIA
+                    RTS                       ;vyskočí z podprogramu
+@end:               LDA #00                   ;načte 0 do A
+                    RTS                       ;vyskočí z podprogramu
+
 
 ; Latest WDC 65C51 has a bug - Xmit bit in status register is stuck on
 ; IRQ driven transmit is not possible as a result - interrupts are endlessly triggered

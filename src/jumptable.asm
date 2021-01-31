@@ -27,7 +27,7 @@
 .export	INTE
 .export	INTD
 .export	GET_INT
-
+.export ACIA_SCAN
 
 .segment "JMPTBL"
 
@@ -51,3 +51,4 @@ DLY:	JMP	_delay		;$FF30	Long delay
 INTE:	JMP	_INTE		;$FF33	Enable Interrupts
 INTD:	JMP	_INTD		;$FF36	Disable Interrupts
 GET_INT:	JMP	_GET_INT		;$FF39	Get Interrupt number 0 = IRQ0, 2 = IRQ1, 4 = IRQ2, 6 = IRQ3, 8 = IRQ4, A = IRQ5, C = IRQ6, E = IRQ7
+ACIA_SCAN:	JMP	_acia_scan		;$FF3C	scan acia for character, if no return 0

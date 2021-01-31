@@ -40,14 +40,29 @@ _bootloader_:
 				LDA #<(msg_2)
 				LDX #>(msg_2)
 				JSR PRNTLN
-        
+        JMP _loop
+;;;;;;;;;;;;;;;;;;;;TEST PROGRAMS;;;;;;;;;;;;;;;;;;;;;;;;
+_VIA2_INIT:   LDA #$FF
+              STA VIA2_DDRB
 
 
 
 
 
+_minilop: JSR ACIA_SCAN
+
+          JSR CHROUT
+          JMP _minilop
 
 
+
+_VIA2_PB:   STA VIA2_ORB
+            RTS
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 _loop:			JSR CHRIN
 
 				CMP #'w'

@@ -30,7 +30,7 @@ msg_0:			.byte "Mazu BANKDISK", $00
 
 .segment "CODE"
 INPUT_CHK:
-@END:			RTS
+					RTS
 
 _set_bank:
 					STA BANK_BASE
