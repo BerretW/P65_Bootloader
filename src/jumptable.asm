@@ -28,6 +28,8 @@
 .export	INTD
 .export	GET_INT
 .export ACIA_SCAN
+.export SPI_INIT
+.export GD_INIT
 
 .segment "JMPTBL"
 
@@ -42,7 +44,7 @@ SNINIT:	JMP	_sn_init          		;$FF15	Initialize SN76489 chipwith mute
 SNWRT:	JMP	_sn_write_data    		;$FF18	write data from regA to sn76489
 SHDLY:	JMP	__delay2          		;$FF1B	Short delay
 RST:	JMP	_bootloader_		;$FF1E	Restart to bootloader
-KBINPUT:	JMP	kbinput          		;$FF21	get key from PS2 keyboard
+KBINPUT:	JMP	kbinput         		;$FF21	get key from PS2 keyboard
 KBGET:	JMP	kbget             		;$FF24
 KBSCAN:	JMP	kbscan            		;$FF27
 KBINIT:	JMP	kbinit            		;$FF2A	Initialise PS2 keyboard
@@ -52,3 +54,8 @@ INTE:	JMP	_INTE		;$FF33	Enable Interrupts
 INTD:	JMP	_INTD		;$FF36	Disable Interrupts
 GET_INT:	JMP	_GET_INT		;$FF39	Get Interrupt number 0 = IRQ0, 2 = IRQ1, 4 = IRQ2, 6 = IRQ3, 8 = IRQ4, A = IRQ5, C = IRQ6, E = IRQ7
 ACIA_SCAN:	JMP	_acia_scan		;$FF3C	scan acia for character, if no return 0
+SPI_INIT: JMP _spi_init
+SPI_WRITE: JMP _spi_write
+GD_INIT:  JMP _GD_Init
+GD_CHROUT: JMP _GD_print
+GD_WRITE8: JMP _GD_WR_8

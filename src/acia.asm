@@ -73,7 +73,7 @@ _acia_scan:         lda ACIA_STATUS           ;nacte status ACIA
                     beq @end                  ;pokud je vysledek 0 skoci na @end, pokud ne tak pokracuje
                     lda ACIA_DATA             ;nacte do A data z ACIA
                     RTS                       ;vyskočí z podprogramu
-@end:               LDA #00                   ;načte 0 do A
+@end:               LDA #$00                   ;načte 0 do A
                     RTS                       ;vyskočí z podprogramu
 
 

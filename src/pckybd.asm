@@ -146,6 +146,7 @@
 .export kbget
 .export kbscan
 .export kbinit
+.export ASCIITBL
 
 .setcpu "65C02"
 .include "io.inc65"
@@ -453,11 +454,16 @@ kbccmd:         .word kbtrap83          ;
 ; is ready is ambiguous.  You must call KBGET or KBINPUT to
 ; get the keyboard data.
 ;
-kbscan:         ldx   #$05              ; timer: x = (cycles - 40)/13   (105-40)/13=5
+kbscan:         ldx   #$40              ; timer: x = (cycles - 40)/13   (105-40)/13=5
                lda   kbportddr         ;
                and   #$CF              ; set clk to input (change if port bits change)
                sta   kbportddr         ;
-kbscan1:        lda   #clk              ;
+               JMP kbscan1
+
+
+
+
+kbscan1:       lda   #clk+data              ;
                bit   kbportreg         ;
                beq   kbscan2           ; if clk goes low, data ready
                dex                     ; reduce timer
@@ -465,13 +471,32 @@ kbscan1:        lda   #clk              ;
                jsr   kbdis             ; timed out, no data, disable receiver
                lda   #$00              ; set data not ready flag
                rts                     ; return
-kbscan2:        jsr   kbdis             ; disable the receiver so other routines get it
+kbscan2:       jsr   kbdis             ; disable the receiver so other routines get it
 ; Three alternative exits if data is ready to be received: Either return or jmp to handler
 ;               rts                     ; return (A<>0, A=clk bit mask value from kbdis)
                jmp   kbinput           ; if key pressed, decode it with KBINPUT
 ;               jmp   KBGET             ; if key pressed, decode it with KBGET
 ;
 ;
+
+kbscan3:      lda #clk+data
+              ldy #40
+:	            dey
+              beq lc08c
+              bit kbportreg
+              bne :- ; wait for CLK=0 and DATA=0 (start bit)
+              jsr kbdis
+              ;LDA #1
+              rts
+
+lc08c:	jsr kbdis
+	clc
+	lda #0 ; Z=1
+	rts
+
+
+
+
 kbflush:        lda   #$f4              ; flush buffer
 ;
 ; send a byte to the keyboard
@@ -487,7 +512,7 @@ kbsend:         sta   byte              ; save byte to send
                lda   kbportddr         ;
                ora   #$30              ;  bit bits high (change if port bits change)
                sta   kbportddr         ; set outputs, clk=0, data=1
-               lda   #$10              ; 1Mhz cpu clock delay (delay = cpuclk/62500)
+               lda   #$40              ; 1Mhz cpu clock delay (delay = cpuclk/62500)
 kbsendw:        dec                     ;
                bne   kbsendw           ; 64uS delay
                ldy   #$00              ; parity counter

@@ -28,6 +28,8 @@ msg_11:			.byte "Cisla 0-2 zmeni banku do ktere se program bude nahravat", $00
 msg_12:			.byte "Cekam na data do BANK!", $00
 msg_13:			.byte "MAZU BANKDISK", $00
 
+.segment "ZEROPAGE"
+ps2byte:   .res 1
 
 
 					.segment "CODE"
@@ -40,30 +42,46 @@ _bootloader_:
 				LDA #<(msg_2)
 				LDX #>(msg_2)
 				JSR PRNTLN
-        JMP _loop
+        JSR GD_INIT
+        JSR KBINIT
+
+; -----------------------------
+        LDA #$41
+        STA ptr1
+        LDX #$81
+        LDA #$1
+        JSR _GD_WR_8
+
+
+
+JMP _loop
 ;;;;;;;;;;;;;;;;;;;;TEST PROGRAMS;;;;;;;;;;;;;;;;;;;;;;;;
-_VIA2_INIT:   LDA #$FF
-              STA VIA2_DDRB
+
+sc:     JSR KBSCAN
+        BNE @prt
+        JSR ACIA_SCAN
+        BEQ sc
+@prt:   JSR CHROUT
+        JSR _GD_print
+        JMP sc
 
 
+ss:     LDA #$FF
+        STA VIA2_DDRB
 
 
-
-_minilop: JSR ACIA_SCAN
-
-          JSR CHROUT
-          JMP _minilop
-
-
-
-_VIA2_PB:   STA VIA2_ORB
-            RTS
+        JSR KBGET
+        STA VIA2_ORB
+        JMP ss
 
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-_loop:			JSR CHRIN
+
+
+
+_loop:			JSR INPUT
 
 				CMP #'w'
 				BEQ _start_write

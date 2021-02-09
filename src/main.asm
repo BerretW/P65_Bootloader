@@ -17,7 +17,7 @@
                 .segment "CODE"
 
 
-reset:          CLI
+reset:          SEI
 								JMP main
 
 nmi:            JMP (RAMDISK_NMI_VECTOR)

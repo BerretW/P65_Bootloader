@@ -29,8 +29,14 @@ _delay_hi:				.res 1
 msg_0:			.byte "Mazu BANKDISK", $00
 
 .segment "CODE"
-INPUT_CHK:
-					RTS
+
+INPUT_CHK:    JSR KBSCAN
+        			BNE @prt
+        			JSR ACIA_SCAN
+        			BEQ INPUT_CHK
+@prt:   			JSR CHROUT
+        			JSR _GD_print
+        			rts
 
 _set_bank:
 					STA BANK_BASE
