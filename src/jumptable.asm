@@ -33,11 +33,11 @@
 
 .segment "JMPTBL"
 
-CHROUT:	JMP	_acia_putc        		;$FF00	print CHAR from regA
+CHROUT:	JMP	__chrout        		;$FF00	print CHAR from regA
 CHRIN:	JMP	_acia_getc        		;$FF03	get char from buffer to regA
-PRNTLN:	JMP	_print_nl         		;$FF06	put new line and a string with start address in regA and regX "lda #<(STRING),ldx #>(STRING),jsr PRNTLN"
-PRNT:	JMP	_acia_puts        		;$FF09	put a string with start address in regA and regX "lda #<(STRING),ldx #>(STRING),jsr PRNTLN"
-PRNL:	JMP	_acia_put_newline 		;$FF0C	print a new line
+PRNTLN:	JMP	__output         		;$FF06	put new line and a string with start address in regA and regX "lda #<(STRING),ldx #>(STRING),jsr PRNTLN"
+PRNT:	JMP	__print        		;$FF09	put a string with start address in regA and regX "lda #<(STRING),ldx #>(STRING),jsr PRNT"
+PRNL:	JMP	__newline 		;$FF0C	print a new line
 SETBNK:	JMP	_set_bank         		;$FF0F	set bank to number from regA
 GETBNK:	JMP	_get_bank         		;$FF12	get bank number to regA
 SNINIT:	JMP	_sn_init          		;$FF15	Initialize SN76489 chipwith mute

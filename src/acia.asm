@@ -1,13 +1,20 @@
+
+          .setcpu		"65C02"
+          .smart		on
+          .autoimport	on
+
+
           .include "io.inc65"
-					.include "macros.inc65"
+					.include "macros_65C02.inc65"
 					.include "zeropage.inc65"
+
                     .export _acia_init
                     .export _acia_putc
                     .export _acia_puts
 					          .export _acia_getc
                     .export _acia_put_newline
                     .export _acia_scan
-                    ;.import popax
+                    .export _acia_print_nl
 
                     .code
 
@@ -37,7 +44,7 @@ _acia_putc:         pha
 ; Send the zero terminated string pointed to by A/X
 ; @in A/X (s) pointer to the string to send
 ; @mod ptr1
-_acia_puts:         phay
+_acia_puts:         phaxy
                     sta ptr1
                     stx ptr1 + 1
                     ldy #0
@@ -46,7 +53,7 @@ _acia_puts:         phay
                     jsr _acia_putc
                     iny
                     bne @next_char
-@eos:               play
+@eos:               plaxy
                     rts
 ; void acia_put_newline()
 ; Send a newline character
@@ -57,6 +64,14 @@ _acia_put_newline:  PHA
                     STA ACIA_DATA
                     PLA
                     RTS
+
+;---------------
+; print string then new line
+;---------------
+_acia_print_nl:  JSR     _acia_puts
+            JMP     _acia_put_newline
+
+
 
 ; char acia_getc()
 ; Wait until a character was reveiced and return it

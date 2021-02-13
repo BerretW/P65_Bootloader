@@ -5,6 +5,7 @@
 _delay_lo:				.res 1
 _delay_hi:				.res 1
 
+.setcpu		"65C02"
 .smart		on
 .autoimport	on
 .case		on
@@ -17,7 +18,6 @@ _delay_hi:				.res 1
 .export _set_bank
 .export _get_bank
 .export __delay2
-.export _print_nl
 .export INPUT_CHK
 .export _delay
 .export _via_test
@@ -25,12 +25,26 @@ _delay_hi:				.res 1
 .export _INTD
 .export _GET_INT
 
-.segment "RODATA"
-msg_0:			.byte "Mazu BANKDISK", $00
+.export __chrout
+.export __output
+.export __print
+.export __newline
 
 .segment "CODE"
 
-INPUT_CHK:    JSR KBSCAN
+__output:           JSR _GD_print_nl
+                    JMP _acia_print_nl
+__print:            JSR _GD_puts
+                    JMP _acia_puts
+__newline:          JSR _GD_newLine
+                    JMP _acia_put_newline
+__chrout:           JSR _GD_print
+                    JMP _acia_putc
+
+
+INPUT_CHK:    JMP kbinput
+
+              JSR KBSCAN
         			BNE @prt
         			JSR ACIA_SCAN
         			BEQ INPUT_CHK
@@ -66,10 +80,6 @@ via_loop:			JSR CHRIN
 ; ---------------------------------------------------------------
 ; void __near__ print_f (char *s)
 ; ---------------------------------------------------------------
-
-_print_nl:
-            jsr     _acia_put_newline
-            JMP     _acia_puts
 
 
 _format_bank:

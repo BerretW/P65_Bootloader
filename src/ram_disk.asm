@@ -36,22 +36,33 @@ ps2byte:   .res 1
 
 _bootloader_:
 
-				LDA #<(msg_0)
-				LDX #>(msg_0)
-				JSR PRNTLN
-				LDA #<(msg_2)
-				LDX #>(msg_2)
-				JSR PRNTLN
+
         JSR GD_INIT
         JSR KBINIT
 
+        LDA #<(msg_0)
+        LDX #>(msg_0)
+
+        JSR PRNTLN
+        LDA #<(msg_2)
+        LDX #>(msg_2)
+        JSR PRNTLN
+        JMP _loop
+
+        				;LDA #<(msg_2)
+        				;LDX #>(msg_2)
+                ;JSR _GD_puts
 ; -----------------------------
-        LDA #$41
+        LDA #$47
         STA ptr1
-        LDX #$81
-        LDA #$1
+        LDX #$1
+        LDA #$5
         JSR _GD_WR_8
 
+        LDX #$0
+        LDA #$0
+        JSR _GD_RD_8
+        JSR CHROUT
 
 
 JMP _loop
