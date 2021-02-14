@@ -47,14 +47,17 @@ adrL = tmp3
 
 _spi_init:					LDA #4
 										STA SPI_STATUS
+										LDA #4
+										STA SPI_STATUS
+										JSR spi_delay
 										RTS
 
-_spi_write:					phaxy
+_spi_write:					PHY
 										STA SPI_DATA
 										JSR spi_delay
 										;JSR spi_delay
 										;JSR spi_delay
-										plaxy
+										PLY
 										RTS
 
 _spi_set_addr:			PHA
@@ -76,6 +79,12 @@ _spi_read:					STA SPI_DATA
 
 _spi_begin:					;LDA #0			;CS0 = 14, CS1=13, CS2=11, CS3=7
 										STA SPI_CSSEL
+										NOP
+										NOP
+										NOP
+										NOP
+										NOP
+										NOP
 										RTS
 
 _spi_end:						PHA
@@ -85,7 +94,7 @@ _spi_end:						PHA
 										PLA
 										RTS
 
-spi_delay:					LDY #$1
+spi_delay:					LDY #$8
 @_delay_1:					DEY
 										BNE @_delay_1
 										RTS

@@ -1,4 +1,5 @@
 .include "io.inc65"
+.include "gd.inc65"
 .include "macros.inc65"
 .include "zeropage.inc65"
 
@@ -23,42 +24,67 @@
 	.export _GD_RD_8
 	.export _GD_clr_scr
 	.export _GD_fill
-	.export _GD_push
-
+	.export _GD_putchar
+	.export __wstart
+	.export __end
+	.export _GD_pos_to_addr
+	.export _GD_res_cur
+	.exportzp _in_char
 .segment	"DATA"
 
 .segment "ZEROPAGE"
 _posx: .res 1,$00
 _posy: .res 1,$00
-_str_tmp: .res 2, $00
-_str_pos: .res 1, $00
-
+_in_char:	.res 1,00
 .segment	"BSS"
 
-_spr:
-	.res	1,$00
+_spr: .res	1,$00
 
 .segment	"CODE"
 ; ---------------------------------------------------------------
-; _start(char * addr)
+; _wstart(char * addr)
 ; in X = Hibyte of start address
 ; in A = Lobyte of start address
 ; ---------------------------------------------------------------
+__wstart:			TAY
+							TXA
+							ORA #$80
+							TAX
+							TYA
+							JSR __start
+							RTS
+							; ---------------------------------------------------------------
+							; _rstart(char * addr)
+							; in X = Hibyte of start address
+							; in A = Lobyte of start address
+							; ---------------------------------------------------------------
 __start:			PHA
 							LDA #14
 							JSR _spi_begin
-							TXA
-							ORA #$80
-							CLC
-							TAX
 							PLA
 							JSR _spi_set_addr
 							RTS
+
+
+; ---------------------------------------------------------------
+; __end
+; end spi transfer
+; ---------------------------------------------------------------
+__end:			JMP _spi_end
+
 ; ---------------------------------------------------------------
 ; void __near__ GD_Init (void)
 ; ---------------------------------------------------------------
 _GD_Init:	JSR _GD_res_cur
 					jsr _spi_init
+
+					ldx     #>J1_RESET
+					lda     #<J1_RESET
+					jsr     pushax
+					lda     #$01
+					jsr     _GD_WR_8
+					JSR _hide
+
 					JSR _GD_clr_scr
 					RTS
 
@@ -72,95 +98,119 @@ _GD_res_cur:	STZ _posx
 ; GD_clr_scr
 ; clear character screen area
 ; ---------------------------------------------------------------
-_GD_clr_scr:	LDA #$0
-							STA ptr1
-							LDX #$0
-							LDA #$0
-							LDY #$0
-
-							JSR _GD_fill
-							;JSR _GD_push
-
-							LDX #$40
-							LDA #$00
-							LDY #$7F
-							STZ ptr1
-							JSR _GD_fill
+_GD_clr_scr:	JSR _GD_clr_chr
+							JSR _GD_clr_spr
 							RTS
 
+_GD_clr_chr:		ldx     #$0
+								lda     #$0
+								jsr     pushax
+								lda     #$00
+								jsr     pusha
+								ldx     #$0F
+								lda     #$FF
+								JSR    _GD_fill
+								RTS
+
+_GD_clr_spr:		ldx     #$40
+								lda     #$0
+								jsr     pushax
+								lda     #$00
+								jsr     pusha
+								ldx     #$3F
+								lda     #$FF
+								JSR    _GD_fill
+								RTS
+
+; -------------------------------------------------------
+; Hide all sprites
+; -------------------------------------------------------
+_hide:	ldx     #>RAM_SPR
+	lda     #<RAM_SPR
+	jsr     __wstart
+	ldx     #$00
+	txa
+	jsr     stax0sp
+_L0002:	jsr     ldax0sp
+	cmp     #$00
+	txa
+	sbc     #$02
+	bvc     _L0006
+	eor     #$80
+_L0006:	bpl     _L0003
+	jsr     _GD_xhide
+	ldx     #$00
+	lda     #$01
+	jsr     addeq0sp
+	bra     _L0002
+_L0003:	jsr     __end
+RTS
+
 
 ; ---------------------------------------------------------------
-; GD_push
-; push number(Y) of characters(ptr1) to Gameduino from start at X A
-; in X = Hibyte of start address
-; in A = Lobyte of start address
-; in Y = Last page filled
-; in ptr1 = data to fill
+; void __near__ GD_xhide (void)
 ; ---------------------------------------------------------------
-_GD_push:			PHA
-							INY
-							STY tmp1
 
-							LDA #14
-							JSR _spi_begin
 
-							TXA
-							ORA #$80
-							CLC
-
-							TAX
-							PLA
-							JSR _spi_set_addr
-
-@_push:				PHA
-							LDA ptr1
-							JSR _spi_write
-							PLA
-							INC
-							BNE @_push
-							INX
-							CPX tmp1
-							BNE @_push
-@end:					JMP _spi_end
-
+	_GD_xhide:			ldx     #$01
+									lda     #$90
+									jsr     _spi_write_16_data
+									inc     _spr
+									rts
 
 
 
 ; ---------------------------------------------------------------
 ; GD_fill
-; in X = Hibyte of start address
-; in A = Lobyte of start address
-; in Y = Last page filled
-; in ptr1 = data to fill
+; ldx     #$15					;HiByte of start address
+; lda     #$21					;LoByte of start address
+; jsr     pushax
+; lda     #$05					;data to fill
+; jsr     pusha
+; ldx     #$0F					;HiByte of count
+; lda     #$FF					;LoByte of count
+; jmp     _GD_fill
 ; ---------------------------------------------------------------
-_GD_fill:			INY
-							STY tmp1
-
-@fill:				JSR _GD_WR_8
-							INC
-							BNE @fill
-							INX
-							CPX tmp1
-							BNE @fill
-@end:					RTS
-
+_GD_fill:				jsr     pushax
+								ldy     #$04
+								jsr     ldaxysp
+								jsr     __wstart
+								bra     L0004
+L0002:					ldy     #$02
+								lda     (sp),y
+								jsr     _spi_write
+L0004:					jsr     ldax0sp
+								stx     tmp1
+								ora     tmp1
+								php
+								ldx     #$00
+								lda     #$01
+								jsr     subeq0sp
+								plp
+								bne     L0002
+								jsr     __end
+								jmp     incsp5
 
 
 
 
 ; ---------------------------------------------------------------
 ; void GD_wr_8(char * addr, char data)
-; in X = Hibyte of address
-; in A = Lobyte of address
-; in ptr1 = data to write
+; ldx     #$28	HiByte of address
+; lda     #$09	LoByte of address
+; jsr     pushax
+; lda     #$01		data to write
+; jsr     _GD_wr
+; in A = data to write
 ; ---------------------------------------------------------------
-_GD_WR_8: 	phaxy
-						JSR __start
-					 	LDA ptr1
-						JSR _spi_write
-						JSR _spi_end
-						plaxy
-						RTS
+_GD_WR_8: 		jsr     pusha
+							ldy     #$02
+							jsr     ldaxysp
+							jsr     __wstart
+							lda     (sp)
+							jsr     _spi_write
+							jsr     __end
+							jmp     incsp3
 ; ---------------------------------------------------------------
 ;	GD_rd
 ; in X = Hibyte of address
@@ -187,23 +237,29 @@ _GD_RD_8:		TAY
 ; Send the zero terminated string pointed to by A/X
 ; @in A/X (s) pointer to the string to send
 ; @mod ptr1
-_GD_puts:						phy
-										phx
-										pha
-                    sta ptr3
-                    stx ptr3 + 1
-                    ldy #0
-										STY ptr4
-@next_char:         LDY ptr4
-										lda (ptr3),y
-                    beq @eos
-                    jsr _GD_print
-                    inc ptr4
-                    bne @next_char
-@eos:								PLA
-										PLX
+_GD_puts:						phaxy
+										sta ptr1
+										stx ptr1+1
+										ldy #0
+@next_char:					lda (ptr1),y
+										STA _in_char
+										BEQ @end
+
+										PHY
+
+										LDX _posx
+										LDA _posy
+										JSR _GD_putchar
+										INC _posx
+
 										PLY
-                    rts
+
+										INY
+										BNE @next_char
+
+@end:								plaxy
+										RTS
+
 
 ; ---------------------------------------------------------------
 ; void GD_newline
@@ -219,60 +275,29 @@ _GD_newLine:			INC _posy
 ; and print string to new position
 ; ---------------------------------------------------------------
 
-_GD_print_nl:			JSR _GD_puts
-									JMP _GD_newLine
-
+_GD_print_nl:			phax
+									JSR _GD_puts
+									JSR _GD_newLine
+									plax
+									RTS
 ; ---------------------------------------------------------------
 ; void GD_putchar (char c)
 ; Put character at cursor position
 ; in X = position at x
-; in Y = position at y
-; in A = Char to print
-; if Z = 1 then exit
+; in A = position at y
+; in _in_char = Char to print
 ; ---------------------------------------------------------------
 
-.segment	"CODE"
-
-.proc	_GD_putchar: near
-
-.segment	"CODE"
-							PHA
-							PLA
+_GD_putchar:	LDY _in_char
 							BEQ @end
-							clc
+							CLC
 							CLD
-
-							PHA
-							LDA #14
-							JSR _spi_begin
-
-							TYA
-							PHA
-							AND #$FC
-							;CLC
-							ROR
-							ROR
-							ADC #$80
+							JSR _GD_pos_to_addr
+							JSR __wstart
+							LDA _in_char
 							JSR _spi_write
-							PLA
-							AND #$3
-							ROL
-							ROL
-							ROL
-							ROL
-							ROL
-							ROL
-							STA ptr2
-							TXA
-							AND #$3F
-							ADC ptr2
-							JSR _spi_write
-							PLA
-							JSR _spi_write
-							JSR _spi_end
-@end:					RTS
-
-.endproc
+							JSR __end
+@end:					JMP incsp1
 
 ; ---------------------------------------------------------------
 ; void get_cursor_pos ()
@@ -281,25 +306,49 @@ _GD_print_nl:			JSR _GD_puts
 ;
 ; ---------------------------------------------------------------
 _get_cursor_pos: 	LDX _posx
-									LDY _posy
+									LDA _posy
 									RTS
-
-
+; ---------------------------------------------------------------
+; _GD_pos_to_addr
+; in A = position of cursor at y 0 - 36
+; in X = position of cursor at x 0 - 49
+; out X = addr HiByte from A>>6
+; out A = addr lOByte from A1,A0,X5,X6,X4,X3,X2,X1,X0
+; ---------------------------------------------------------------
+_GD_pos_to_addr:	CLD
+									PHX						;save X							X	= 1111 1111
+									PHA						;save A							A	= 1111 1111
+									AND #$FC			;mask lo 2 bites A 	A	= 1111 1100
+									ROR						;Shift A						A	- 0111 1110
+									ROR						;Shift A						A	- 0011 1111
+									TAX						;save A to X				X	= 0011 1111
+									PLA						;load saved A to A	A	=	1111 1111
+									AND #$03			;mask Hi 6 bites		A	= 0000 0011
+									ROR						;Shift A						A	- 0000 0001 C
+									ROR						;Shift A						A	- 1000 0000 C
+									ROR						;Shift A						A	- 1100 0000
+									STA tmp2			;save A to tmp1		tmp1= 1100 0000
+									PLA						;Load saved X to A	A	= 1111 1111
+									AND #$3F			;mask top 2 bites		A	=	0011 1111
+									ADC tmp2			;combine A and tmp1	A	=	1111 1111
+@end:							RTS
 ; ---------------------------------------------------------------
 ; void GD_print_char()
 ; in A = char to print
 ; ---------------------------------------------------------------
-_GD_print: 				JSR _check_char
+_GD_print: 				PHA
+									JSR _check_char
 _GD_print_char:		JSR _get_cursor_pos
 									JSR _GD_putchar
 									JSR _GD_next_pos
+									PLA
 									RTS
 
 ; --------------------------------------------------------------
 ; void _check_char
 ; check if in A is printable character, if not then set Z = 1
 ; --------------------------------------------------------------
-_check_char:
+_check_char:	LDA _in_char
 							BEQ @end
 							CMP #$94
 							BEQ @left
@@ -314,20 +363,29 @@ _check_char:
 							RTS
 
 @left:				JSR _GD_prev_pos
-							LDA #$0
+							STZ _in_char
 							RTS
 
-@right:				RTS
-@up:					RTS
-@down:				RTS
-@del:					RTS
-@ent:					RTS
+@right:				JSR _GD_next_pos
+							STZ _in_char
+							RTS
+@up:					STZ _in_char
+							RTS
+@down:				STZ _in_char
+							RTS
+@del:					STZ _in_char
+							RTS
+@ent:					STZ _in_char
+							RTS
+
 @bksp:				JSR _GD_prev_pos
 							LDA #$20
+							STA _in_char
+
 							JSR _get_cursor_pos
 							JSR _GD_putchar
 							LDA #0
-							RTS
+							STA _in_char
 @end:					RTS
 ; --------------------------------------------------------------
 ; void GD_prev_pos()

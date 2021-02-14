@@ -7,13 +7,14 @@
         	.smart		on
         	.autoimport	on
           .import _format_bank
-
+          .importzp	sp, sreg, regsave, regbank, _in_char
+        	.importzp	tmp1, tmp2, tmp3, tmp4, ptr1, ptr2, ptr3, ptr4
 
 					.export _print_help
 					.export _bootloader_
           .export _loop
 					.segment "RODATA"
-msg_0:			.byte "APPARTUS P65 Bootloader RAMa", $00
+msg_0:			.byte "APPARTUS P65 Bootloader RAM", $00
 msg_1:			.byte "Cekam na data", $00
 msg_2:			.byte "Pro napovedu stiskni H Prikazy posilej bez CR LF.", $00
 msg_3:			.byte "w = kazdy nasledujici byte zapise do pameti na pozici h6000 - h7FFF. Po prijeti vsech bytu se novy program spusti z pameti.", $00
@@ -42,11 +43,13 @@ _bootloader_:
 
         LDA #<(msg_0)
         LDX #>(msg_0)
-
         JSR PRNTLN
         LDA #<(msg_2)
         LDX #>(msg_2)
         JSR PRNTLN
+
+
+
         JMP _loop
 
         				;LDA #<(msg_2)
@@ -121,6 +124,9 @@ _loop:			JSR INPUT
 				CMP #'m'
 				BEQ _start_ewoz
 
+        CMP #'e'
+				BEQ _start_echo
+
         CMP #'0'
 				BEQ _switch_b0
 
@@ -146,21 +152,25 @@ _loop:			JSR INPUT
         BEQ _switch_b7
 
 				JMP	_loop
-__via_test: JMP _via_test
-_start_program:	JMP (RAMDISK_RESET_VECTOR)
-_start_program_BANK:	JMP (BANKDISK_RESET_VECTOR)
-_start_ewoz:	JMP _EWOZ
-_start_help:	JMP _print_help
-_start_read:	JMP _read_RAM
-_start_read_BANK:	JMP _read_BANK
 _start_write:	JMP _write_to_RAM
 _start_write_BANK:	JMP _write_to_BANK
+_start_read:	JMP _read_RAM
+_start_read_BANK:	JMP _read_BANK
+__via_test: JMP _via_test
+_start_help:	JMP _print_help
 
 _start_bank_format: LDA #<(msg_13)
 				            LDX #>(msg_13)
 				         		JSR PRNTLN
                     jsr _format_bank
                     JMP _go_loop
+
+_start_program:	JMP (RAMDISK_RESET_VECTOR)
+_start_program_BANK:	JMP (BANKDISK_RESET_VECTOR)
+
+_start_ewoz:	JMP _EWOZ
+_start_echo:  JMP _echo_test
+
 _switch_b0: LDA #0
             STA BANK_BASE
             JMP _loop

@@ -10,7 +10,7 @@ _delay_hi:				.res 1
 .autoimport	on
 .case		on
 .debuginfo	off
-.importzp	sp, sreg, regsave, regbank
+.importzp	sp, sreg, regsave, regbank, _in_char
 .importzp	tmp1, tmp2, tmp3, tmp4, ptr1, ptr2, ptr3, ptr4
 .macpack	longbranch
 
@@ -21,6 +21,7 @@ _delay_hi:				.res 1
 .export INPUT_CHK
 .export _delay
 .export _via_test
+.export _echo_test
 .export _INTE
 .export _INTD
 .export _GET_INT
@@ -38,11 +39,12 @@ __print:            JSR _GD_puts
                     JMP _acia_puts
 __newline:          JSR _GD_newLine
                     JMP _acia_put_newline
+
 __chrout:           JSR _GD_print
                     JMP _acia_putc
 
 
-INPUT_CHK:    JMP kbinput
+INPUT_CHK:    ;JMP kbinput
 
               JSR KBSCAN
         			BNE @prt
@@ -60,6 +62,13 @@ _set_bank:
 					RTS
 _get_bank:  LDA BANK_BASE
             RTS
+
+
+_echo_test:         JSR _GD_res_cur
+@lll:                JSR KBINPUT
+                    STA _in_char
+                    JSR CHROUT
+                    JMP @lll
 
 
 
