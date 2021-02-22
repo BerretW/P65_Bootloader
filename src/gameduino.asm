@@ -18,6 +18,7 @@
 	.export _GD_print_char
 	.export _GD_print
 	.export _GD_WR_8
+	.export _GD_WR_16
 	.export _GD_puts
 	.export _GD_print_nl
 	.export _GD_newLine
@@ -29,13 +30,9 @@
 	.export __end
 	.export _GD_pos_to_addr
 	.export _GD_res_cur
-	.exportzp _in_char
-.segment	"DATA"
+	.export _GD_set_cur_pos
 
-.segment "ZEROPAGE"
-_posx: .res 1,$00
-_posy: .res 1,$00
-_in_char:	.res 1,00
+	;.exportzp _in_char
 .segment	"BSS"
 
 _spr: .res	1,$00
@@ -46,24 +43,26 @@ _spr: .res	1,$00
 ; in X = Hibyte of start address
 ; in A = Lobyte of start address
 ; ---------------------------------------------------------------
-__wstart:			TAY
-							TXA
-							ORA #$80
-							TAX
-							TYA
-							JSR __start
-							RTS
+__wstart:				jsr     pushax
+								jsr     ldax0sp
+								pha
+								txa
+								ora     #$80
+								tax
+								pla
+								jsr     __start
+								jmp     incsp2
 							; ---------------------------------------------------------------
 							; _rstart(char * addr)
 							; in X = Hibyte of start address
 							; in A = Lobyte of start address
 							; ---------------------------------------------------------------
-__start:			PHA
-							LDA #14
-							JSR _spi_begin
-							PLA
-							JSR _spi_set_addr
-							RTS
+__start:				jsr     pushax
+								lda     #$0E
+								jsr     _spi_begin
+								jsr     ldax0sp
+								jsr     _spi_set_addr
+								jmp     incsp2
 
 
 ; ---------------------------------------------------------------
@@ -75,15 +74,16 @@ __end:			JMP _spi_end
 ; ---------------------------------------------------------------
 ; void __near__ GD_Init (void)
 ; ---------------------------------------------------------------
-_GD_Init:	JSR _GD_res_cur
+_GD_Init:	JSR	_delay
+					JSR _GD_res_cur
 					jsr _spi_init
+					JSR	_delay
+					ldx #>J1_RESET
+					lda #<J1_RESET
+					jsr pushax
+					lda #$01
+					jsr _GD_WR_8
 
-					ldx     #>J1_RESET
-					lda     #<J1_RESET
-					jsr     pushax
-					lda     #$01
-					jsr     _GD_WR_8
-					JSR _hide
 
 					JSR _GD_clr_scr
 					RTS
@@ -98,53 +98,73 @@ _GD_res_cur:	STZ _posx
 ; GD_clr_scr
 ; clear character screen area
 ; ---------------------------------------------------------------
-_GD_clr_scr:	JSR _GD_clr_chr
-							JSR _GD_clr_spr
-							RTS
+_GD_clr_scr:	JSR	_delay
+							jsr     push0
+							jsr     pusha
+							ldx     #$0F
+							lda     #$FF
+							jsr     _GD_fill
+							ldx     #$40
+							lda     #$00
+							jsr     pushax
+							jsr     pusha
+							dex
+							dea
+							jsr     _GD_fill
+							ldx     #$40
+							lda     #$00
+							jsr     pushax
+							jsr     pusha
+							dex
+							dea
+							jmp     _GD_fill
 
-_GD_clr_chr:		ldx     #$0
-								lda     #$0
-								jsr     pushax
-								lda     #$00
-								jsr     pusha
-								ldx     #$0F
-								lda     #$FF
-								JSR    _GD_fill
-								RTS
 
-_GD_clr_spr:		ldx     #$40
-								lda     #$0
-								jsr     pushax
-								lda     #$00
-								jsr     pusha
-								ldx     #$3F
-								lda     #$FF
-								JSR    _GD_fill
-								RTS
+_GD_clr_scr1:
 
-; -------------------------------------------------------
-; Hide all sprites
-; -------------------------------------------------------
-_hide:	ldx     #>RAM_SPR
-	lda     #<RAM_SPR
-	jsr     __wstart
-	ldx     #$00
-	txa
-	jsr     stax0sp
+				jsr     push0
+				ldx     #$30
+				jsr     __wstart
+				ldx     #$00
+				txa
+				jsr     stax0sp
 _L0002:	jsr     ldax0sp
-	cmp     #$00
-	txa
-	sbc     #$02
-	bvc     _L0006
-	eor     #$80
+				cmp     #$00
+				txa
+				sbc     #$02
+				bvc     _L0006
+				eor     #$80
 _L0006:	bpl     _L0003
-	jsr     _GD_xhide
-	ldx     #$00
-	lda     #$01
-	jsr     addeq0sp
-	bra     _L0002
+				jsr     _GD_xhide
+				ldx     #$00
+				lda     #$01
+				jsr     addeq0sp
+				bra     _L0002
 _L0003:	jsr     __end
-RTS
+				jsr     push0
+				jsr     pusha
+				ldx     #$0F
+				lda     #$FF
+				jsr     _GD_fill
+				ldx     #$40
+				lda     #$00
+				jsr     pushax
+				jsr     pusha
+				dex
+				dea
+				jsr     _GD_fill
+				ldx     #$40
+				lda     #$00
+				jsr     pushax
+				jsr     pusha
+				dex
+				dea
+				jsr     _GD_fill
+				jmp     incsp2
+
+
+
+
 
 
 ; ---------------------------------------------------------------
@@ -175,11 +195,11 @@ _GD_fill:				jsr     pushax
 								ldy     #$04
 								jsr     ldaxysp
 								jsr     __wstart
-								bra     L0004
-L0002:					ldy     #$02
+								bra     __L0004
+__L0002:					ldy     #$02
 								lda     (sp),y
 								jsr     _spi_write
-L0004:					jsr     ldax0sp
+__L0004:					jsr     ldax0sp
 								stx     tmp1
 								ora     tmp1
 								php
@@ -187,7 +207,7 @@ L0004:					jsr     ldax0sp
 								lda     #$01
 								jsr     subeq0sp
 								plp
-								bne     L0002
+								bne     __L0002
 								jsr     __end
 								jmp     incsp5
 
@@ -211,6 +231,25 @@ _GD_WR_8: 		jsr     pusha
 							jsr     _spi_write
 							jsr     __end
 							jmp     incsp3
+
+; --------------------------------------------------------------
+; void GD_wr_16(char * addr, char data)
+; ldx     #$28	HiByte of address
+; lda     #$09	LoByte of address
+; jsr     pushax
+; lda     #$01		HiByte of data to write
+; ldx			#$00		LoByte of data to write
+; jsr     _GD_wr_16
+; in A = data to write
+; ---------------------------------------------------------------
+_GD_WR_16: 			jsr     pushax
+								ldy     #$03
+								jsr     ldaxysp
+								jsr     __wstart
+								jsr     ldax0sp
+								jsr     _spi_write_16_data
+								jsr     __end
+								jmp     incsp4
 ; ---------------------------------------------------------------
 ;	GD_rd
 ; in X = Hibyte of address
@@ -308,6 +347,24 @@ _GD_putchar:	LDY _in_char
 _get_cursor_pos: 	LDX _posx
 									LDA _posy
 									RTS
+
+
+; ---------------------------------------------------------------
+;	lda     #$01 ;pos X
+;	jsr     pusha
+;	lda     #$0F ;pos Y
+; void GD_set_cur_pos (char x, char y)
+; ---------------------------------------------------------------
+
+_GD_set_cur_pos:	jsr     pusha
+									lda     (sp)
+									sta     _posy
+									ldy     #$01
+									lda     (sp),y
+									sta     _posx
+									jmp     incsp2
+
+
 ; ---------------------------------------------------------------
 ; _GD_pos_to_addr
 ; in A = position of cursor at y 0 - 36
@@ -340,8 +397,10 @@ _GD_print: 				PHA
 									JSR _check_char
 _GD_print_char:		JSR _get_cursor_pos
 									JSR _GD_putchar
+									LDA _in_char
+									BEQ @end
 									JSR _GD_next_pos
-									PLA
+@end:							PLA
 									RTS
 
 ; --------------------------------------------------------------
@@ -360,32 +419,50 @@ _check_char:	LDA _in_char
 							BEQ @down
 							CMP #$08
 							BEQ @bksp
+							CMP #$0D
+							BEQ @ent
+							CMP #$7F
+							BEQ @bksp
 							RTS
 
 @left:				JSR _GD_prev_pos
+							JSR _GD_prev_pos
 							STZ _in_char
 							RTS
 
 @right:				JSR _GD_next_pos
 							STZ _in_char
 							RTS
-@up:					STZ _in_char
+
+@up:					JSR _GD_move_UP
+							STZ _in_char
+							JSR _GD_prev_pos
 							RTS
-@down:				STZ _in_char
+
+@down:				JSR _GD_move_DOWN
+							STZ _in_char
+							JSR _GD_prev_pos
 							RTS
-@del:					STZ _in_char
+
+@del:					JSR _GD_next_pos
+							LDA #$20
+							STA _in_char
+							JSR _get_cursor_pos
+							JSR _GD_putchar
+							STZ _in_char
 							RTS
+
 @ent:					STZ _in_char
+							JSR _GD_move_DOWN
+							JSR _GD_prev_pos
 							RTS
 
 @bksp:				JSR _GD_prev_pos
 							LDA #$20
 							STA _in_char
-
 							JSR _get_cursor_pos
 							JSR _GD_putchar
-							LDA #0
-							STA _in_char
+							STZ _in_char
 @end:					RTS
 ; --------------------------------------------------------------
 ; void GD_prev_pos()
@@ -398,15 +475,38 @@ _GD_prev_pos:	LDX _posx
 							DEC _posy
 @_decx:				DEX
 							STX _posx
+@end:					RTS
+
+; --------------------------------------------------------------
+; _GD_move_UP
+; update position of cursor by 1 character left
+; --------------------------------------------------------------
+_GD_move_UP:	LDX _posy
+							BNE @end
+							LDX #37
+@end:					DEX
+							STX _posy
 							RTS
 
+; --------------------------------------------------------------
+; _GD_move_UP
+; update position of cursor by 1 character left
+; --------------------------------------------------------------
+_GD_move_DOWN:LDX _posy
+							CPX #36
+							BNE @end
+							LDX #$0
+							STX _posy
+							RTS
+@end:					INX
+							STX _posy
+
+							RTS
 ; ---------------------------------------------------------------
 ; void GD_next_pos ()
 ; update position of cursor by 1 character right
 ; ---------------------------------------------------------------
-_GD_next_pos:
-
-							LDX _posx
+_GD_next_pos:	LDX _posx
 							LDY _posy
 							PHA
 							PLA

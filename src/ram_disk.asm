@@ -36,10 +36,10 @@ ps2byte:   .res 1
 					.segment "CODE"
 
 _bootloader_:
-
-
-        JSR GD_INIT
+        SEI
         JSR KBINIT
+        JSR _GD_Init
+
 
         LDA #<(msg_0)
         LDX #>(msg_0)

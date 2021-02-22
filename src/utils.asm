@@ -35,8 +35,11 @@ _delay_hi:				.res 1
 
 __output:           JSR _GD_print_nl
                     JMP _acia_print_nl
+
 __print:            JSR _GD_puts
                     JMP _acia_puts
+
+
 __newline:          JSR _GD_newLine
                     JMP _acia_put_newline
 
@@ -50,8 +53,8 @@ INPUT_CHK:    ;JMP kbinput
         			BNE @prt
         			JSR ACIA_SCAN
         			BEQ INPUT_CHK
-@prt:   			JSR CHROUT
-        			JSR _GD_print
+@prt:   			;JSR CHROUT
+        			;JSR _GD_print
         			rts
 
 _set_bank:
